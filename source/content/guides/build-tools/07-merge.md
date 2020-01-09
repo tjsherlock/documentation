@@ -4,7 +4,6 @@ subtitle: Merge Your Work
 description: In step seven of the Build Tools guide, learn how to merge your branches into the master branch.
 buildtools: true
 anchorid: merge
-categories: [develop]
 generator: pagination
 layout: guide
 type: guide
@@ -20,7 +19,7 @@ image: buildToolsGuide-thumb
 ---
 This lesson demonstrates the final process of the Pull Request workflow, merging. After completing an internal peer review process for a given Pull Request, work is considered ready for production and accepted into the master branch.
 
-1.  Go to your GitHub project page, click on the **Pull requests** tab and navigate to the PR open against the `slogan` branch, which we [started in an earlier lesson](/guides/build-tools/new-pr/).
+1.  Go to your GitHub project page, click on the **Pull requests** tab and navigate to the PR open against the `slogan` branch, which we [started in an earlier lesson](/guides/build-tools/pr-workflow/).
 
   Check if your tests have completed, and the test results are green If they haven't completed, just wait a few minutes. If they failed, go back and review the changes you made.
 

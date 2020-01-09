@@ -1,11 +1,10 @@
 ---
 title: Build Tools
 subtitle: Introduction
-description: Create a site that manages its files using Composer, and uses a GitHub PR workflow with Behat tests run via Circle CI.
-tags: [automate, composer]
-categories: [develop]
+description: Describes the Build Tools project, its purpose, and workflow
+tags: [build-tools, automate, composer]
 contributors: [greg-1-anderson, stevector, ataylorme, rachelwhitton]
-layout: guide
+layout: guide-build-tools
 type: guide
 anchorid: build-tools
 buildtools: true
@@ -21,104 +20,77 @@ image: buildToolsGuide-thumb
 multidev: true
 ---
 
-<Alert type="danger" title="Warning">
-
-The current version of the Build Tools plugin is designed for Terminus 1.x, and is not yet compatible with [current versions](/terminus/updates/) of Terminus. We are working on a new version of the Terminus Build Tools plugin with Terminus 2 support and will update this guide once it is released. In the meantime, you can test the [beta release](https://github.com/pantheon-systems/terminus-build-tools-plugin/releases/latest).
-
+<Alert type="export" title="Notice">
+<a href="/docs/terminus/install">Terminus version <code className="language-sh">2</code></a> and <a href="https://github.com/pantheon-systems/terminus-build-tools-plugin/releases">Build Tools version <code className="language-sh">2</code> beta</a> are available. If you are still using version <code className="language-sh">1.x</code> of either, you should upgrade as they beyond end of life and no longer supported.
 </Alert>
 
-This guide describes how to use build tools such as GitHub and CircleCI with Composer to implement a collaborative, team-based Continuous Integration workflow using Pull Requests for Drupal 8 sites on Pantheon. While this guide demonstrates [Drupal 8](https://github.com/pantheon-systems/example-drops-8-composer), the same workflow can be applied to [WordPress](https://github.com/pantheon-systems/example-wordpress-composer) and [Drupal 7](https://github.com/pantheon-systems/example-drops-7-composer) sites.
+## What Is Build Tools?
 
-<BuildTools />
+Build Tools is a project encompassing multiple Pantheon maintained repositories that work together to connect the tools and automation necessary for an advanced [WebOps workflow](https://pantheon.io/webops) to Pantheon. The main goals of the Build Tools project are:
+
+- **Ease the creation of new projects making use of an external Git provider, a Continuous Integration service, and Pantheon.**
+This is primarily done through the [`build:project:create` commands](#buildprojectcreate), which scaffolds new projects from a [template repository](#template-repositories) and performs one-time setup, such as configuring SSH keys and environment variables, needed to connect an external Git provider and Continuous Integration service with Pantheon. To use your own template repository see [Customization](#customization).
+
+- **Add additional commands to Terminus to make tasks common in an automated workflow easier.**
+See [Commands](#commands) and [Build Tools Command Examples](#build-tools-command-examples) for details.
+
+### Pantheon Build Tools Repositories
+The repositories that are a part of the Build Tools project are:
+
+- [**Terminus Build Tools Plugin**](https://github.com/pantheon-systems/terminus-build-tools-plugin) - a package extending the Pantheon's Terminus command-line interface that contains a collection of commands useful for projects making use of an external Git provider and Continuous Integration (CI) along with Pantheon.
+- **Template Repositories** -  repositories for [WordPress](https://github.com/pantheon-systems/example-wordpress-composer) and [Drupal 8](https://github.com/pantheon-systems/example-drops-8-composer) that include an opinionated set of workflows and deployment scripts. These are templates/examples, not framework. They are meant to be a one-time starting point for new projects and customized as needed.
+  - By default, when creating a new Build Tools project one of these example repositories is used as a starting point. Custom starters are also supported.
+- [**Build Tools CI Dockerfile**](https://github.com/pantheon-systems/docker-build-tools-ci/) - A [`Dockerfile`, which is deployed to quay.io](https://quay.io/repository/pantheon-public/build-tools-ci?tab=tags), for use in Continuous Integration environments. It contains common Pantheon tools, such as Terminus and the Terminus Build Tools plugin.
+
+These tools work together to help you create and manage your own projects that follow the Build Tools workflow.
+
+### A Build Tools Project's Components
+There are 3 main components to a project created with Build Tools:
+
+- **An External Git Provider <Popover title="Git Provider" content="An external Git provider that provides cloud storage of Git repositories along with features to manage those repsitories, such as issues, pull requests, a web editor, etc. This is where the WebOps team works and commits source code for the project." />**
+- **A Continuous Integration (CI) Service <Popover title="CI Service" content="A Continuous Integration service that provides hosted solutions to run automated tests for a project, allowing them to be run triggered by a change on the Git provider. This is where the source code is turned into production ready code and where automated tests are run." />**
+- **A Pantheon Site**
+  - Create a [free Pantheon account](https://dashboard.pantheon.io/register)
+
+The supported Git provider and Continuous Integration service combinations are:
+- [<CustomIcon icon="github" /> GitHub](https://github.com) and [<CustomIcon icon="circleci" /> CircleCI](https://circleci.com/)
+- [<CustomIcon icon="gitlab" /> GitLab](https://about.gitlab.com) with [<CustomIcon icon="gitlab ci/cd" /> GitLabCI](https://about.gitlab.com/product/continuous-integration/)
+- [<CustomIcon icon="bitbucket" /> BitBucket](https://bitbucket.org/product/) with [<CustomIcon icon="bitbucket pipelines" /> BitBucket Pipelines](https://bitbucket.org/product/features/pipelines)
+
+Build Tools projects also use [<CustomIcon icon="composer" /> Composer  <Popover title="CI Service" content="Composer is a PHP dependency manager that provides an alternative, more modern way to manage the external code used by a project." />](https://getcomposer.org) for PHP dependency management. If you haven't worked with Composer before, the [Pantheon Composer doc](/composer) is a great place to get started.
 
 <Enablement title="Automation Training" link="https://pantheon.io/agencies/learn-pantheon?docs">
 
-Master Composer concepts with help from our experts. Pantheon delivers custom workshops to help development teams master the platform and improve internal WebOps.
+Master Composer, automated testing, and other advanced workflow concepts with help from our experts. Pantheon delivers custom workshops to help teams master our platform and improve their [WebOps](https://pantheon.io/webops) workflow.
 
 </Enablement>
 
-## Artifact Deployment
-Only files unique to the project are tracked as part of the project's main "source" repository on GitHub, which requires an abstraction layer to compile dependencies and deploy an entire "artifact" to the site repository on Pantheon. The abstraction layer is facilitated by CircleCI in the Pantheon maintained examples, but the principles are the same for other continuous integration service providers.
+## Build Tools Workflow
+Build Tools projects extend the [Pantheon workflow](https://pantheon.io/docs/pantheon-workflow) by adding an external Git provider and a Continuous Integration (CI) service.
 
-Composer is used to fetch dependencies declared by the project as part of a CircleCI build step. This ensures that the final composed build results are installed on Pantheon:
+In this workflow, only files unique to the project are tracked as part of the external Git repository. The CI service then builds a production artifact, deploys the fully-built site to Pantheon, and runs a suite of automated tests.
 
-![Artifact Deployment](../../../images/artifact-deployment.png)
+This is quite different than working with the Pantheon-hosted Git repository for each site, where all code must be comitted.
 
-<Accordion title="Pull Requests" id="understand-pr" icon="lightbulb">
+<BuildToolsStackSelectToolbar />
 
-One advantage of managing code this way is that it keeps the change sets (differences) for pull requests as small as possible. If a pull request upgrades several dependencies, only the dependency metadata file will change; the actual code changes in the upgraded dependencies themselves are not shown.
+<BuildToolsWorkflowDiagram />
 
-GitHub pull requests (PRs) are a formalized way of reviewing and merging a proposed set of changes to the source repository. When one member of a development team makes changes to a project, all of the files modified to produce the feature are committed to a separate branch, and that branch becomes the basis for the pull request. GitHub allows other team members to review all of the differences between the new files and their original versions, before merging the PR to accept changes.
+## Is Build Tools The Right Tool?
+It is easy to create a Build Tools project but you must also understand what all of the components are doing and how they work together. This is not a "set it and forget it workflow", but rather an entry point for projects requiring automated workflows.
 
-</Accordion>
+Build Tools project have many benefits. However, there is also added complexity and maintenance. You, and your team, must decide when the benefits outweight the additional complexity and maintenance.
 
-## Before You Begin
-
-1. Install [Composer](https://getcomposer.org).
-2. Install the most recent release of [Terminus](/terminus/):
-
-    ```bash
-    curl -O https://raw.githubusercontent.com/pantheon-systems/terminus-installer/master/builds/installer.phar && php installer.phar install
-    ```
-
-3. [Add an SSH key](/ssh-keys/) within your User Dashboard to enable passwordless access and avoid authentication prompts. Otherwise, provide your Pantheon Dashboard credentials when prompted.
-
-4. [Generate a Machine Token](https://dashboard.pantheon.io/machine-token/create), then authenticate Terminus:
-
-      ```bash
-      terminus auth:login --machine-token=<machine-token>
-      ```
-
-5. Create the `$HOME/.terminus/plugins` directory if it does not already exist:
-
-      ```bash
-      mkdir -p $HOME/.terminus/plugins
-      ```
-
-6. Install the [Terminus Composer Plugin](https://github.com/pantheon-systems/terminus-composer-plugin):
-
-    ```bash
-    composer create-project -n --no-dev -d $HOME/.terminus/plugins pantheon-systems/terminus-composer-plugin:~1
-    ```
-
-7. Install the [Terminus Drupal Console Plugin](https://github.com/pantheon-systems/terminus-drupal-console-plugin):
-
-    ```bash
-    composer create-project -n --no-dev -d $HOME/.terminus/plugins pantheon-systems/terminus-drupal-console-plugin:~1
-    ```
-
-8. Install the [Terminus Build Tools Plugin](https://github.com/pantheon-systems/terminus-build-tools-plugin). Update the version number in this example from `2.0.0-beta12` to the current version:
-
-    ```bash
-    composer create-project --no-dev -d $HOME/.terminus/plugins pantheon-systems/terminus-build-tools-plugin:^2.0.0-beta12
-    ```
-
-  <Alert title="Note" type="info">
-
-  The Terminus Build Tools Plugin does not support private repositories.
-
-  </Alert>
-
-9. [Authorize CircleCI on GitHub](https://github.com/login/oauth/authorize?client_id=78a2ba87f071c28e65bb).
-
-    If you are redirected to the CircleCI homepage, you have already authorized the service for your GitHub account. Nice! Way to be ahead of the game.
+In general, Build Tools is a good fit for a project if the project needs are complex enough to require a more complex workflow and you/your team are comfortable with command-line tools and bash scripts and wish to use Continuous Integration to automate the build, deploy and test of the project workflow.
 
 <Alert title="Note" type="info">
 
 Pantheon's [support team](/support/) cannot troubleshoot issues with third-party services like GitHub or CircleCI.
 
-If you need help configuring external systems, consider joining the [Community Forum](https://discuss.pantheon.io/) or posting in our [Pantheon Community Slack Channel](https://slackin.pantheon.io/).
+If you need help configuring external systems, consider joining the [Community Forum](https://discuss.pantheon.io/) or posting in our [Pantheon Community Slack Instance](https://slackin.pantheon.io/) in the `#composer-workflow` channel.
 
 </Alert>
 
+### Ready To Create a Build Tools Project?
 
-### Access Tokens (Optional)
-
-The Build Tools plugin will prompt you to create access tokens for both [GitHub](https://github.com/settings/tokens) and [CircleCI](https://circleci.com/account/api), which are stored as environment variables. The GitHub token needs the **repo** (required) and **delete-repo** (optional) scopes. You may optionally generate these tokens ahead of time and manually export them to the local variables `GITHUB_TOKEN` and `CIRCLE_TOKEN`, respectively:
-
-```bash
-export GITHUB_TOKEN=yourGitHubToken
-export CIRCLE_TOKEN=yourCircleCIToken
-```
-
-If you need to replace a token, navigate to your [project settings page in CircleCI](https://circleci.com/docs/2.0/env-vars/#adding-environment-variables-in-the-app).
+Click _"Continue"_ to move onto the next section, which will walk you through creating a Build Tools project.

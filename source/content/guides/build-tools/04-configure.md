@@ -3,11 +3,10 @@ title: Build Tools
 subtitle: Manage Configuration
 description: In step four of the Build Tools guide, learn how to manage your site configuration.
 anchorid: configure
-categories: [develop]
 layout: guide
 permalink: docs/guides/build-tools/configure/
 nexturl: guides/build-tools/extend/
-previousurl: guides/build-tools/new-pr/
+previousurl: guides/build-tools/pr-workflow/
 editpath: build-tools/04-configure.md
 image: buildToolsGuide-thumb
 contributors: [szipfel]
@@ -18,7 +17,7 @@ In this lesson, we'll use the Configuration Management system within the Drupal 
 <Accordion title="Configuration Management" id="understand-config" icon="lightbulb">
 
 #### Configuration Management
- While it is possible to configure your site by directly editing the exported configuration files (as we did in the [previous lesson](/guides/build-tools/new-pr/)), it's only easy for properties with a known location and format. Most of the time, it's far more convenient to use the [Configuration Management system within the Drupal admin interface](/drupal-8-configuration-management/).
+ While it is possible to configure your site by directly editing the exported configuration files (as we did in the [previous lesson](/guides/build-tools/pr-workflow/)), it's only easy for properties with a known location and format. Most of the time, it's far more convenient to use the [Configuration Management system within the Drupal admin interface](/drupal-8-configuration-management/).
 
 After making configuration changes in the Admin interface, settings are updated in the database. The Configuration Management system allows you to commit settings stored in the database to code so they can be easily tracked and applied to other environments.
 
@@ -58,10 +57,10 @@ After making configuration changes in the Admin interface, settings are updated 
 
 Whenever you commit changes from the Pantheon dashboard, the commit will be reduced to contain only those files that belong in the source repository, and this commit will be pushed back to the canonical repository on GitHub:
 
-![Sync commit from Pantheon to GitHub](../../../images/pr-workflow/pantheon-circle-github.png)
+<p class="text-center" >![Sync commit from Pantheon to GitHub](../../../images/pr-workflow/pantheon-circle-github.png)</p>
 
 GitHub will then start a new CircleCI build, and the build results will once again be pushed to the existing Multidev environment that was created for this branch:
 
-![Sync commit from GitHub to Pantheon Multidev](../../../images/pr-workflow/github-circle-multidev.png)
+<p class="text-center" >![Sync commit from GitHub to Pantheon Multidev](../../../images/pr-workflow/github-circle-multidev.png)</p>
 
 You may continue working in this environment, making multiple changes, and committing updates whenever you would like your tests to run again.
